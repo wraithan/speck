@@ -74,12 +74,12 @@ def add(time, description, when=None,
     return 0
 
 @command
-def list(blah=True):
+def list(token=None):
     from lxml import etree
     from pprint import pprint
     from urllib2 import Request, urlopen
 
-    token = 'k7jkg3mf8840k0cfiri13n7c8347n5n'
+    token = token or config.get('freckle', 'token')
     req = Request(url='http://aquameta.letsfreckle.com/api/projects.xml',
                   headers={'X-FreckleToken': token})
     response = urlopen(req)
