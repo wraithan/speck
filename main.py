@@ -4,7 +4,10 @@ from ConfigParser import ConfigParser
 from baker import command, run
 from urllib2 import Request, urlopen
 from urllib import urlencode
-from datetime import date
+from datetime import date, timedelta
+from StringIO import StringIO
+import csv
+import json
 
 config = ConfigParser()
 config.read([os.path.expanduser('~/.speckrc')])
@@ -88,17 +91,34 @@ def list(token=None):
     pprint(project_and_id)
 
 @command
+def report_last_week(token=None, billable='true'):
+    last_week = current_week = get_week_days(date.today().year, int(date.today().strftime("%W"))-1)
+    report(start=last_week[0], end=last_week[1], token=token, billable=billable)
+
+@command
+def report_current_week(token=None, billable='true'):
+    report(token=token, billable=billable)
+
+@command
 def report(start=None, end=None, token=None, billable='true'):
     token = token or config.get('freckle', 'token')
-    
-    tuples = (('search[from]', '2010-09-01'),)
+    current_week = get_week_days(date.today().year, int(date.today().strftime("%W")))
+    start = start or current_week[0]
+    end = end or current_week[1]
+    user_id = config.get('freckle', 'user_id')
 
-    req = Request(url='http://aquameta.letsfreckle.com/api/entries.json?search[from]=2010-09-01',
+    req = Request(url='http://aquameta.letsfreckle.com/api/entries.json?search[from]=%s&search[to]=%s&search[people]=%s&search[billable]=%s' % (start, end, user_id, billable),
                   headers={'X-FreckleToken': token})
     try:
         response = urlopen(req)
-        print response.code, response.msg
-        from ipdb import set_trace; set_trace()
+        report = json.loads(response.read())
+        print ", ".join(['date', 'description', 'minutes'])
+        buff = StringIO()
+        writer = csv.writer(buff)
+        for entry in report:
+            e = entry['entry']
+            writer.writerow([e['date'], e['description'], e['minutes']])
+        print buff.getvalue()
     except:    
         import traceback
         import sys
@@ -107,5 +127,13 @@ def report(start=None, end=None, token=None, billable='true'):
         print "################################################################"
         return 1
     
+def get_week_days(year, week):
+    d = date(year,1,1)
+    if(d.weekday()>3):
+        d = d+timedelta(7-d.weekday())
+    else:
+        d = d - timedelta(d.weekday())
+    dlt = timedelta(days = (week-1)*7-1)
+    return d + dlt,  d + dlt + timedelta(days=6)
 
 run()
