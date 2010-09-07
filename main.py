@@ -2,6 +2,9 @@
 import os
 from ConfigParser import ConfigParser
 from baker import command, run
+from urllib2 import Request, urlopen
+from urllib import urlencode
+from datetime import date
 
 config = ConfigParser()
 config.read([os.path.expanduser('~/.speckrc')])
@@ -36,8 +39,6 @@ def add(time, description, when=None,
         token=None):
     """Adds the given parameters to freckle."""
 
-    from urllib2 import Request, urlopen
-    from datetime import date
 
     when = when or str(date.today())
     project = project or config.get('freckle', 'project')
@@ -77,8 +78,7 @@ def add(time, description, when=None,
 def list(token=None):
     from lxml import etree
     from pprint import pprint
-    from urllib2 import Request, urlopen
-
+    
     token = token or config.get('freckle', 'token')
     req = Request(url='http://aquameta.letsfreckle.com/api/projects.xml',
                   headers={'X-FreckleToken': token})
@@ -86,5 +86,26 @@ def list(token=None):
     tree = etree.fromstring(response.read())
     project_and_id = dict([(i[7].text.lower(),i[5].text) for i in tree])
     pprint(project_and_id)
+
+@command
+def report(start=None, end=None, token=None, billable='true'):
+    token = token or config.get('freckle', 'token')
+    
+    tuples = (('search[from]', '2010-09-01'),)
+
+    req = Request(url='http://aquameta.letsfreckle.com/api/entries.json?search[from]=2010-09-01',
+                  headers={'X-FreckleToken': token})
+    try:
+        response = urlopen(req)
+        print response.code, response.msg
+        from ipdb import set_trace; set_trace()
+    except:    
+        import traceback
+        import sys
+        print "######################## Exception #############################"
+        print '\n'.join(traceback.format_exception(*sys.exc_info()))
+        print "################################################################"
+        return 1
+    
 
 run()
