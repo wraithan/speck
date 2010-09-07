@@ -1,0 +1,11 @@
+*.pyc
+*.pyo
+settings_local.py
+*.swp
+*.noseids
+.DS_Store
+._*
+*~
+.#*
+*#
+nosetests.xml
